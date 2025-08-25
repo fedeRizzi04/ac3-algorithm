@@ -65,7 +65,7 @@ Initial domains:
   c: {1, 2, 3}
 
 === RESULTS ===
-The CSP has solutions!
+The CSP might has solutions!
 
 Domains after AC-3:
   a: {3}
