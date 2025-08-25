@@ -8,6 +8,10 @@ class CspAc3Solver:
     # constraints: dict where the key is a tuple (Xi, Xj) and the value is a list of constraints (lambda function with 2 parameters and a condition on these two)
     def __init__(self, arcs : list, domains : dict, constraints : dict):
         self._arcs = arcs
+        # check if the domains at least contain one element (if not the CSP has no solutions)
+        for value in domains.values():
+            if not value: # empty set
+                raise ValueError('The domains of the variables must contain at least one value. The given CSP has no solutions')
         self._domains = domains
         self._constraints = constraints
         self._queue = deque()
@@ -15,7 +19,15 @@ class CspAc3Solver:
             self._queue.append(el)
 
     def solve(self):
-        pass
+        while self._queue:
+            (Xi, Xj) = self._queue.popleft()
+            updated = self.updateDomain((Xi, Xj))
+            if updated:
+                if not self._domains[Xi]:
+                    return self._domains.copy(), False # returns the domains (the user can se that the domain of Xi is empty) and a flag to inform that there are no solutions
+                self.recheckArcs(Xi)
+        return self._domains, True
+
 
     def updateDomain(self, arc):
         '''
@@ -61,6 +73,13 @@ class CspAc3Solver:
                 self._queue.append((Xi, Xj))
                 queue_set.add((Xi, Xj)) # to avoid duplicates (Xi, Xj) in self._arcs
 
-
-
-
+    def _printDomains(self):
+        '''
+        This method is intended to return the solution of AC-3 well-printed, human like. So for each variable is indicated the corresponding domain after the process.
+        That method should be called by the programmer of this class because if this function were called after an object instantiation the domains would be the initial ones (not the solution domains)
+        '''
+        for var, domain in self._domains.items():
+            print(str(var) + ": {", end="")
+            for value in domain:
+                print(str(value) + ", ", end="")
+            print("")
