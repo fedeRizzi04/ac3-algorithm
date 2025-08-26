@@ -30,12 +30,12 @@ class CspAc3Solver:
 
 
     def updateDomain(self, arc):
-        '''
+        """
         For an arc (Xi, Xj) this function check if Xi is arc-consistent with Xj. For each constraint between Xi and Xj it will be checked
         if every value in the domain of Xi has a value in the domain of Xj that together satisfies the constraint. If this does not happen then
         the value will be removed from Xi domain, causing a re-check of arc-consistency between (Xk, Xi), where Xk is a variable that shares a binary constraint
         with Xi
-        '''
+        """     
         updatedDomainXi = False
         (Xi, Xj) = arc
 
@@ -61,10 +61,10 @@ class CspAc3Solver:
         return updatedDomainXi
 
     def recheckArcs(self, var_updated):
-        '''
+        """
         If a domain of a variable has been changed, then we have to check the consistency between
         all the variables that shares a constraint with the variable that has changed domain
-        '''
+        """
 
         # converting the queue in a set to have the belonging test efficient
         queue_set = set(self._queue)
@@ -74,10 +74,10 @@ class CspAc3Solver:
                 queue_set.add((Xi, Xj)) # to avoid duplicates (Xi, Xj) in self._arcs
 
     def _printDomains(self):
-        '''
+        """
         This method is intended to return the solution of AC-3 well-printed, human like. So for each variable is indicated the corresponding domain after the process.
         That method should be called by the programmer of this class because if this function were called after an object instantiation the domains would be the initial ones (not the solution domains)
-        '''
+        """
         for var, domain in self._domains.items():
             print(str(var) + ": {", end="")
             for value in domain:

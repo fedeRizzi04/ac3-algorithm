@@ -1,4 +1,5 @@
 from ac3 import CspAc3Solver
+import re 
 
 class CspAc3Tester:
 
@@ -9,7 +10,7 @@ class CspAc3Tester:
         self.arcs = []
 
     def run_interactive_test(self):
-        """Runs a complete interactive test of the CSP"""
+        """Runs a complete interactive test of the AC-3 algorithm"""
         print("=== Interactive CSP AC-3 Test ===\n")
 
         try:
@@ -33,7 +34,7 @@ class CspAc3Tester:
         for var in sorted(self.variables):
             domain_input = input(f"Enter the domain for {var} (values separated by comma): ")
             try:
-                # Try to convert to integers, otherwise keep as strings
+                # try to convert elements to integers, if it is not possible then keep them as strings
                 domain_values = []
                 for val in domain_input.split(','):
                     val = val.strip()
@@ -63,7 +64,7 @@ class CspAc3Tester:
         print("  - Inequality: A!=B, A<>B (enter both directions!)")
         print("  - Comparison: A<B, A>B, A<=B, A>=B (enter both directions!)")
         print("  - Absolute difference: |A-B|=2, |A-B|>1 (enter both directions!)")
-        print("  - Custom: type 'custom' to enter lambda")
+        print("  - Custom: type 'custom' to enter lambda function")
 
         while True:
             constraint_input = input("\nEnter constraint (or 'done' to finish): ").strip()
@@ -84,7 +85,7 @@ class CspAc3Tester:
         print(f"\nGenerated arcs: {len(self.arcs)}")
         print(f"Total constraints: {sum(len(c) for c in self.constraints.values())}")
         
-        # Show constraint details for debugging
+        # show constraint details for debugging
         print("\nConstraint details:")
         for arc, funcs in self.constraints.items():
             print(f"  Arc {arc}: {len(funcs)} constraint(s)")
@@ -94,17 +95,12 @@ class CspAc3Tester:
         """Automatic parsing of most common constraints"""
         constraint_str = constraint_str.replace(' ', '')
 
-        # Pattern for constraint of equality/inequality
-        import re
 
     def _parse_constraint(self, constraint_str):
         """Automatic parsing of constraints - returns unidirectional constraint only"""
         constraint_str = constraint_str.replace(' ', '')
 
-        # Pattern for constraint of equality/inequality
-        import re
-
-        # |A-B|=n, |A-B|>n, etc. - Now unidirectional, user must enter both directions
+        # |A-B|=n, |A-B|>n, etc. unidirectional, user must enter both directions
         abs_pattern = r'\|([A-Za-z]+)-([A-Za-z]+)\|([<>=!]+)(\d+)'
         abs_match = re.match(abs_pattern, constraint_str)
         if abs_match:
@@ -127,7 +123,7 @@ class CspAc3Tester:
                     func = lambda x, y: abs(x - y) <= value
                     return var1, var2, func
 
-        # A op B pattern - All unidirectional now
+        # A op B pattern - All unidirectional constraints
         simple_pattern = r'([A-Za-z]+)([<>=!]+)([A-Za-z]+)'
         simple_match = re.match(simple_pattern, constraint_str)
         if simple_match:
@@ -143,7 +139,7 @@ class CspAc3Tester:
                     func = lambda x, y: x < y  # Only A < B
                     return var1, var2, func
                 elif op == '>':
-                    func = lambda x, y: x > y  # Only A > B
+                    func = lambda x, y: x > y  #Only A > B
                     return var1, var2, func
                 elif op == '<=':
                     func = lambda x, y: x <= y  # Only A <= B
@@ -186,25 +182,12 @@ class CspAc3Tester:
         
         self.constraints[arc].append(constraint_func)
 
-    def _add_constraint(self, var1, var2, constraint_func1, constraint_func2):
-        """Adds a bidirectional constraint with proper reverse logic"""
-        arc1 = (var1, var2)
-        arc2 = (var2, var1)
-
-        if arc1 not in self.constraints:
-            self.constraints[arc1] = []
-        if arc2 not in self.constraints:
-            self.constraints[arc2] = []
-
-        self.constraints[arc1].append(constraint_func1)
-        self.constraints[arc2].append(constraint_func2)
-
     def _generate_arcs(self):
         """Generates the list of arcs from constraints"""
         self.arcs = list(self.constraints.keys())
 
     def _solve_and_display(self):
-        """Solves the CSP and shows results"""
+        """Solves the CSP and shows results applying AC-3 algorithm (so it's not sure that will be found an assignment to each variable)"""
         print("4. CSP resolution with AC-3")
         print("Initial domains:")
         for var, domain in self.domains.items():
