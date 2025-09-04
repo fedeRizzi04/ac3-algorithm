@@ -1,5 +1,6 @@
 from collections import deque
 import random
+from collections import defaultdict
 
 class Csp:
 
@@ -162,7 +163,7 @@ class Csp:
     
     def get_random_value(self, var, assignment):
         """ 
-        This method selects the value for var that minimizes the conflicts with the other assigned values.
+        This method selects the value for var that minimizes the conflicts with the other assigned variables.
         Directly modifies assignment[var] during computation, which is safe in this context.
         """
         conflicts_per_value = {}
@@ -183,4 +184,56 @@ class Csp:
         return random.choice(best_values)
         
 
-            
+    '''
+    ----------------------
+    Backtracking search part
+    '''            
+    
+    def runBacktrackingSearch(self): 
+        pass
+    
+    
+    def degreeHeuristic(self, assignment):
+        """ 
+        This method returns an unassigned variable following the degree heuristic. This heuristic choose to assign a value to the variable involved in 
+        the greatest number of constraints among other unassigned variables.
+        Assigned must be a dict where each key is a variable of the CSP and the value is the assigned value for the variable, or False is the variable is unassigned
+        """
+        num_constraints = {}
+
+        unassigned = [v for v in assignment if assignment[v] == False]
+
+        if not unassigned:
+            return None
+
+        for v in unassigned:
+            num_constraints[v] = 0
+            for (Xi, Xj) in self._arcs:
+                if Xi == v and Xj in unassigned:
+                    num_constraints[Xi] += len(self._constraints[(Xi, Xj)])
+        max_degree = max(num_constraints.values())
+        bests = [v for v, deg in num_constraints.items() if deg == max_degree]
+        return random.choice(bests)
+
+
+    def lcsHeuristic(self, assignment, var):
+        """
+        This method returns the value to be assigned to the variable var (the parameter one) in the current step of the backtracking search. The value the least constraining value, so the value that does not permit
+        the minimum number of assignment to other unassigned variables in the CSP
+        """
+        unassigned = [v for v in assignment if assignment[v] == False]
+        unassigned_neighbors = [Xj for (Xi, Xj) in self._arcs if Xi == var and Xj in unassigned]
+        num_constraint_for_values = defaultdict(int)
+
+        for value in self._domains[var]:
+            for Xj in unassigned_neighbors:
+                for constraint in self._constraints[(var, Xj)]:
+                    num_constraint_for_values[value] += sum([1 for value2 in self._domains[Xj] if not constraint(value, value2)])
+
+        min_constraints = min(num_constraint_for_values.values())
+        bests = [v for v, c in num_constraint_for_values.items() if c == min_constraints]
+        return random.choice(bests)
+    
+    
+
+        
