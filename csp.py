@@ -24,12 +24,15 @@ class Csp:
     AC-3 Algorithm part
     '''
 
-    def runAc3(self):
-        
-        self._queue.clear() # clear the deque, maybe some algorithm has inserted something in
-        # popolating the queue with all the arcs (variables that shares at least one binary constraint)
-        for el in self._arcs:
-            self._queue.append(el)
+    # if queue is False, then it will be runned a traditional AC-3 algorithm with all the arcs in the queue. If it's not the case, it will be runned the AC-3 algorithm with the given queue
+    def runAc3(self, queue=False):
+        if not queue:
+            self._queue.clear() # clear the deque, maybe some algorithm has inserted something in
+            # popolating the queue with all the arcs (variables that shares at least one binary constraint)
+            for el in self._arcs:
+                self._queue.append(el)
+        else: 
+            self._queue = queue
             
         while self._queue:
             (Xi, Xj) = self._queue.popleft()
@@ -94,7 +97,7 @@ class Csp:
             print(str(var) + ": {", end="")
             for value in domain:
                 print(str(value) + ", ", end="")
-            print("")
+            print("}")
 
     '''
     ------------------------------------------
@@ -189,9 +192,70 @@ class Csp:
     Backtracking search part
     '''            
     
-    def runBacktrackingSearch(self): 
-        pass
+    def runBacktrackingSearch(self):
+        """
+        Method to run the backtracking search algorithm for CSP in order to return all the possible solutions (if there are any)
+        of the CSP. This method returns a list of dictionary and each dictionary has a couple (Variable, Value) representing a possible assignment
+        for the variable in the solution
+        """
+        solutions = []
+        assignment = {v: False for v in self._domains.keys()}
+        self._backtrackingSearch(solutions, self.degreeHeuristic, self.lcvHeuristic, assignment)
+        return solutions
+
     
+
+    def _backtrackingSearch(self, solutions, variableHeuristic, valueHeuristic, assignment):
+        """
+        Auxiliary function that performs the backtracking search algorithm for CSP. It returns a list of dictionary in which there is a key for each variable linked to its value in a possible solution for the CSP 
+        """
+        if all(assignment[v] is not False for v in assignment):
+            solutions.append(assignment.copy())
+            return
+
+
+
+        # deep copy of the current domains
+        current_domains = {v: set(d) for v, d in self._domains.items()}
+
+        
+        # choosing the variable to assing
+        var = variableHeuristic(assignment)
+        if var is None:
+            return
+
+        domain_values = deque()
+        var_domain = self._domains[var].copy()
+        while var_domain:
+            val = valueHeuristic(assignment, var, var_domain)
+            domain_values.append(val)
+            var_domain.discard(val)
+
+        while domain_values:
+            curvalue = domain_values.popleft()
+            assignment[var] = curvalue
+            self._domains = {v: set(d) for v, d in current_domains.items()}
+            self._domains[var] = {curvalue}
+            queue = self._macQueue(assignment, var)
+            domains_after_ac3, flag = self.runAc3(queue=queue)
+            if flag:
+                self._backtrackingSearch(solutions, self.mrvHeuristic, self.lcvHeuristic, assignment)
+
+
+        assignment[var] = False
+        self._domains = current_domains
+
+
+    def _macQueue(self, assignment, var):
+
+        unassigned = [v for v in assignment if not assignment[v]]
+        queue = deque()
+        for (Xi, Xj) in self._arcs:
+            if Xj == var and Xi in unassigned:
+                queue.append((Xi, Xj))
+
+        return queue
+
     
     def degreeHeuristic(self, assignment):
         """ 
@@ -201,7 +265,7 @@ class Csp:
         """
         num_constraints = {}
 
-        unassigned = [v for v in assignment if assignment[v] == False]
+        unassigned = [v for v in assignment if not assignment[v]]
 
         if not unassigned:
             return None
@@ -214,18 +278,35 @@ class Csp:
         max_degree = max(num_constraints.values())
         bests = [v for v, deg in num_constraints.items() if deg == max_degree]
         return random.choice(bests)
+    
+    
+    def mrvHeuristic(self, assignment): 
+        """
+        Minimum Remaining Value heuristic. This method returns the unassigned variable that has the minimum remaining value in its domain
+        """
+        unassigned = [k for k, v in assignment.items() if not v]
+        num_values = {}
+        for v in unassigned: 
+            num_values[v] = len(self._domains[v])
+        min_val = min(num_values.values())
+        bests = [k for k, v in num_values.items() if v == min_val]
+        return random.choice(bests)    
+        
 
 
-    def lcsHeuristic(self, assignment, var):
+    def lcvHeuristic(self, assignment, var, domain):
         """
         This method returns the value to be assigned to the variable var (the parameter one) in the current step of the backtracking search. The value the least constraining value, so the value that does not permit
         the minimum number of assignment to other unassigned variables in the CSP
         """
-        unassigned = [v for v in assignment if assignment[v] == False]
+        unassigned = [v for v in assignment if not assignment[v]]
         unassigned_neighbors = [Xj for (Xi, Xj) in self._arcs if Xi == var and Xj in unassigned]
         num_constraint_for_values = defaultdict(int)
 
-        for value in self._domains[var]:
+        for value in domain:
+            num_constraint_for_values[value] = 0
+
+        for value in domain:
             for Xj in unassigned_neighbors:
                 for constraint in self._constraints[(var, Xj)]:
                     num_constraint_for_values[value] += sum([1 for value2 in self._domains[Xj] if not constraint(value, value2)])
@@ -235,5 +316,5 @@ class Csp:
         return random.choice(bests)
     
     
-
-        
+    
+    
